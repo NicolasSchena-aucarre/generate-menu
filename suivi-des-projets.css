@@ -1,0 +1,40 @@
+/* Feuille de style du bandeau — générée par le générateur de menu. Ne pas modifier à la main : régénérer. */
+
+/* BANDEAU */
+:host{ display:block; position:sticky; top:0; z-index:20; font-family:Montserrat,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+*{ box-sizing:border-box; }
+[hidden]{ display:none !important; }
+.bm-header{ background:#ffffff; color:#111111; padding:0 24px; border-bottom:2px solid #111111; border-radius:0px; box-shadow:0 4px 8px rgba(0, 0, 0, 0.18); }
+.bm-inner{ max-width:1240px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:120px; padding:8px 0; }
+
+/* LOGO ET TITRE */
+.bm-brand{ display:flex; align-items:center; flex:none; }
+.bm-logo{ height:60px; width:auto; max-width:min(40vw, 480px); max-height:104px; display:block; object-fit:contain; }
+.bm-titre{ flex:1 1 auto; min-width:0; padding:0 8px; text-align:left; font-family:'Montserrat', sans-serif; font-size:18px; font-weight:800; color:#0b3d4f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* PERSONNE CONNECTÉE */
+.bm-droite{ display:flex; align-items:center; gap:16px; flex:none; }
+.bm-user{ display:flex; align-items:center; gap:8px; }
+.bm-user-nom{ font-size:14px; font-weight:500; }
+.bm-avatar{ width:32px; height:32px; border-radius:50%; background:#111111; color:#ffffff; display:grid; place-items:center; font-size:12px; font-weight:800; }
+
+/* BURGER */
+.bm-burger-wrap{ position:relative; }
+.bm-burger{ display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; width:48px; height:48px; padding:8px; border:none; border-radius:8px; background:none; color:#111111; cursor:pointer; }
+.bm-burger:hover{ background:#f2f2f2; }
+.bm-burger-barre{ display:block; width:24px; height:2px; border-radius:2px; background:currentColor; }
+.bm-burger-icone{ width:32px; height:32px; object-fit:contain; display:block; }
+
+/* MENU DÉROULANT */
+.bm-menu{ position:absolute; top:calc(100% + 8px); right:0; z-index:50; min-width:224px; max-width:min(90vw, 360px); padding:8px; background:#ffffff; border:2px solid #111111; border-radius:8px; box-shadow:4px 4px 0 #111111; }
+.bm-menu a{ display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px; text-decoration:none; color:#0b3d4f; font-size:14px; font-weight:500; }
+.bm-menu a:hover{ background:#f2f2f2; }
+.bm-lien-icone{ width:16px; height:16px; object-fit:contain; flex:none; }
+.bm-vide{ margin:0; padding:8px; font-size:14px; opacity:.75; }
+
+/* ACCESSIBILITÉ */
+.bm-burger:focus-visible, .bm-menu a:focus-visible{ outline:3px solid #111111; outline-offset:2px; background:#f2f2f2; }
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+
+/* MOBILE */
+@media (max-width:600px){ .bm-header{ padding:0 16px; } .bm-user-nom{ display:none; } }
