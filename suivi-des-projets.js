@@ -17,7 +17,7 @@
    directement sur GitHub : ce script n'a pas besoin d'être régénéré. Attention : générer de
    nouveau le dossier depuis Grist remplace ce fichier par le contenu de la table Widget.
 
-   PERSONNE CONNECTÉE : le bandeau la cherche lui-même dans la table « Utilisateur » du
+   PERSONNE CONNECTÉE : le bandeau la cherche lui-même dans la table « Utilisateurs » du
    document (colonnes Email, Role, et Nom_Complet ou Prenom + Nom). C'est la seule ligne dont
    l'Email n'est pas masqué par une règle d'accès Grist. Il faut que le widget ait chargé l'API
    Grist et appelé  grist.ready({ requiredAccess: "full" }). Autre nom de table : ajouter
@@ -39,15 +39,15 @@
   var NOM = "BandeauMenu";
   if (window[NOM]) return; // fichier chargé deux fois : une seule instance
 
-  var VERSION = "bandeau-202610071418";
-  var CONFIG = {"titre":"Suivi des projets","logo":"https://nicolasschena-aucarre.github.io/generate-menu/logo/logo.png","icone":null,"tableUtilisateur":"Utilisateur","police":"https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&display=swap"};
+  var VERSION = "bandeau-202610071427";
+  var CONFIG = {"titre":"Suivi des projets","logo":"https://nicolasschena-aucarre.github.io/generate-menu/logo/logo.png","icone":null,"tableUtilisateur":"Utilisateurs","police":"https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&display=swap"};
 
   var script = document.currentScript;
   var adresse = script && script.src ? script.src.split(/[?#]/)[0] : "";
   var dossier = adresse.replace(/[^\/]*$/, "");
   var urlCss = (script && script.getAttribute("data-css")) || (adresse ? adresse.replace(/\.js$/i, ".css") : "");
   var urlJson = (script && script.getAttribute("data-json")) || (adresse ? adresse.replace(/\.js$/i, ".json") : "");
-  var tableUtilisateur = (script && script.getAttribute("data-table")) || CONFIG.tableUtilisateur || "Utilisateur";
+  var tableUtilisateur = (script && script.getAttribute("data-table")) || CONFIG.tableUtilisateur || "Utilisateurs";
   var titreWidget = ((script && script.getAttribute("data-titre")) || "").trim();
   var titre = [CONFIG.titre, titreWidget].filter(Boolean).join(" - ");
 

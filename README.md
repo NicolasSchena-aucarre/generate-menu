@@ -45,10 +45,10 @@ Copiez cette ligne dans le `<head>` du widget :
 
 ## 3. Personne connectée et menu filtré par rôle
 
-Le bandeau **lit lui-même** la table « Utilisateur » du document : il n'y a rien à ajouter dans le widget pour afficher le nom, l'avatar et filtrer le menu. Cela suppose :
+Le bandeau **lit lui-même** la table « Utilisateurs » du document : il n'y a rien à ajouter dans le widget pour afficher le nom, l'avatar et filtrer le menu. Cela suppose :
 
 - Le widget charge l'API Grist (`<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>`) et appelle `grist.ready({ requiredAccess: "full" })`, avec le niveau d'accès **« Accès complet au document »**. Le bandeau réessaie pendant une quinzaine de secondes si le widget appelle `grist.ready()` tardivement.
-- Une table nommée **`Utilisateur`**, avec les colonnes `Email`, `Role`, et au choix `Nom_Complet` ou `Prenom` + `Nom` (ce sont les **identifiants** de colonne qui comptent, pas les libellés). Pour une table portant un autre nom, ajoutez `data-table="NomDeLaTable"` à la balise.
+- Une table nommée **`Utilisateurs`**, avec les colonnes `Email`, `Role`, et au choix `Nom_Complet` ou `Prenom` + `Nom` (ce sont les **identifiants** de colonne qui comptent, pas les libellés). Pour une table portant un autre nom, ajoutez `data-table="NomDeLaTable"` à la balise.
 - Une règle d'accès Grist qui **masque l'`Email` de toutes les lignes sauf la sienne** : la personne connectée est la seule ligne dont l'`Email` est lisible. S'il y en a plusieurs ou aucune, le bandeau affiche « Non identifié·e » plutôt que de deviner.
 
 Les liens qui ont des `roles` ne s'affichent que si l'un des rôles de la personne correspond (majuscules et accents ignorés). Sans rôle connu, seuls les liens sans `roles` s'affichent.
@@ -99,5 +99,5 @@ Après un changement, **la nouvelle version n'est pas visible tout de suite** : 
 | Bandeau sans mise en forme | Le `.css` est introuvable : il doit porter le même nom que le `.js` et se trouver dans le même dossier. |
 | « Liste indisponible. » | Le `.json` est absent, ou mal formé (virgule oubliée, guillemets). |
 | Images absentes | Vérifiez que `logo/` est publié et que `UrlRepo` correspond bien à l'adresse du site. Les images doivent être en `https`. |
-| Nom et avatar absents | Le widget n'a pas l'accès complet, n'a pas appelé `grist.ready()`, ou la table « Utilisateur » est absente. Dans la console du widget, `BandeauMenu.etat()` indique la table cherchée et d'où vient la personne. |
+| Nom et avatar absents | Le widget n'a pas l'accès complet, n'a pas appelé `grist.ready()`, ou la table « Utilisateurs » est absente. Dans la console du widget, `BandeauMenu.etat()` indique la table cherchée et d'où vient la personne. |
 | Lien absent du menu | Il est filtré par rôle, ou son adresse n'est pas en `http(s)`. `BandeauMenu.etat()` dans la console du widget indique, pour chaque lien, s'il est visible. |
