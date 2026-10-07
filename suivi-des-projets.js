@@ -17,10 +17,15 @@
    directement sur GitHub : ce script n'a pas besoin d'être régénéré. Attention : générer de
    nouveau le dossier depuis Grist remplace ce fichier par le contenu de la table Widget.
 
-   PERSONNE CONNECTÉE (facultatif) : le widget la transmet, le bandeau ne la cherche pas.
+   PERSONNE CONNECTÉE : le bandeau la cherche lui-même dans la table « Utilisateur » du
+   document (colonnes Email, Role, et Nom_Complet ou Prenom + Nom). C'est la seule ligne dont
+   l'Email n'est pas masqué par une règle d'accès Grist. Il faut que le widget ait chargé l'API
+   Grist et appelé  grist.ready({ requiredAccess: "full" }). Autre nom de table : ajouter
+   data-table="NomDeLaTable" à la balise. Sans accès complet, le nom reste masqué.
+
+   Un widget peut aussi la transmettre lui-même (prioritaire sur la lecture automatique) :
 
      if (window.BandeauMenu) window.BandeauMenu.utilisateur({ nomComplet: "Paul Durand", role: "Manager" });
-     window.BandeauMenu.utilisateur({ prenom: "Paul", nom: "Durand", role: ["Manager"] });
      window.BandeauMenu.utilisateur(null);   // « Non identifié·e »
 
    Un lien réservé à des rôles n'est affiché que si l'un des rôles de la personne
@@ -34,21 +39,26 @@
   var NOM = "BandeauMenu";
   if (window[NOM]) return; // fichier chargé deux fois : une seule instance
 
-  var VERSION = "bandeau-202610071407";
-  var CONFIG = {"titre":"Suivi des projets","logo":"https://nicolasschena-aucarre.github.io/generate-menu/logo/logo.png","icone":null,"police":"https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&display=swap"};
+  var VERSION = "bandeau-202610071418";
+  var CONFIG = {"titre":"Suivi des projets","logo":"https://nicolasschena-aucarre.github.io/generate-menu/logo/logo.png","icone":null,"tableUtilisateur":"Utilisateur","police":"https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&display=swap"};
 
   var script = document.currentScript;
   var adresse = script && script.src ? script.src.split(/[?#]/)[0] : "";
   var dossier = adresse.replace(/[^\/]*$/, "");
   var urlCss = (script && script.getAttribute("data-css")) || (adresse ? adresse.replace(/\.js$/i, ".css") : "");
   var urlJson = (script && script.getAttribute("data-json")) || (adresse ? adresse.replace(/\.js$/i, ".json") : "");
+  var tableUtilisateur = (script && script.getAttribute("data-table")) || CONFIG.tableUtilisateur || "Utilisateur";
   var titreWidget = ((script && script.getAttribute("data-titre")) || "").trim();
   var titre = [CONFIG.titre, titreWidget].filter(Boolean).join(" - ");
 
   var ui = null;            // éléments du bandeau, une fois construit
   var moi;                  // undefined : non transmis ; null : non identifié
   var rolesMoi = [];        // rôles de la personne, normalisés
-  var derniereCle;          // dernière personne transmise
+  var derniereCle;          // dernière personne appliquée
+  var manuel = false;       // le widget a appelé utilisateur() : la lecture automatique s'arrête
+  var source = "(aucune)";  // d'où vient la personne : "table" ou "widget"
+  var identifie = false;    // la lecture automatique a abouti
+  var apiVue = false;       // l'API Grist (docApi) a été aperçue
   var cleMenu;              // contenu actuellement affiché dans le menu
   var liens = null;         // liens du menu : null tant que le fichier .json n'est pas lu
   var etatListe = "";       // "" | "chargement" | "erreur"
@@ -185,6 +195,7 @@
     chargerPolice();
     if (moi !== undefined) rendreUtilisateur();
     rendreMenu();
+    identifierAutomatiquement(0);
   }
 
   // ---------- Personne connectée ----------
@@ -250,18 +261,79 @@
     if (ouvrir) chargerListe();
   }
 
+  // ---------- Personne connectée : lecture automatique de la table ----------
+  var DELAIS = [0, 400, 1000, 2000, 4000, 8000];   // le widget peut appeler grist.ready() après le chargement du bandeau
+  var DELAI_MAX = 5000;                            // une lecture sans réponse est abandonnée puis retentée
+
+  function appliquer(m) {
+    // Rappelable à chaque relecture : un appel identique au précédent est ignoré.
+    var cle = JSON.stringify(m || null);
+    if (cle === derniereCle) return;
+    derniereCle = cle;
+    moi = m || null;
+    rolesMoi = rolesDeLaPersonne(moi && moi.role);
+    rendreUtilisateur();
+    rendreMenu();
+  }
+
+  // La personne connectée est LA seule ligne dont l'Email est lisible (les autres sont
+  // masqués par une règle d'accès). S'il y en a plusieurs ou aucune, on ne devine pas.
+  function personneDepuisTable(tab) {
+    if (!tab || !tab.id || !tab.Email) return null;
+    var visibles = [];
+    for (var i = 0; i < tab.id.length; i++) {
+      if (typeof tab.Email[i] === "string" && tab.Email[i].indexOf("@") > 0) visibles.push(i);
+    }
+    if (visibles.length !== 1) return null;
+    var k = visibles[0];
+    return {
+      nomComplet: tab.Nom_Complet ? tab.Nom_Complet[k] : "",
+      prenom: tab.Prenom ? tab.Prenom[k] : "",
+      nom: tab.Nom ? tab.Nom[k] : "",
+      role: tab.Role ? tab.Role[k] : ""
+    };
+  }
+
+  function identifierAutomatiquement(essai) {
+    if (manuel || identifie) return;
+    var fini = false, minuterie;
+    function suite() {
+      if (essai + 1 < DELAIS.length) {
+        setTimeout(function () { identifierAutomatiquement(essai + 1); }, DELAIS[essai + 1]);
+      } else if (apiVue) {
+        console.warn("[bandeau] table « " + tableUtilisateur + " » illisible : personne non identifiée.");
+        appliquer(null);
+      } else {
+        console.info("[bandeau] API Grist introuvable ou sans accès complet : le widget peut appeler " + NOM + ".utilisateur(...).");
+      }
+    }
+    var g = window.grist;
+    if (g && g.docApi && typeof g.docApi.fetchTable === "function") {
+      apiVue = true;
+      minuterie = setTimeout(function () { if (!fini) { fini = true; suite(); } }, DELAI_MAX);
+      g.docApi.fetchTable(tableUtilisateur).then(function (tab) {
+        if (fini) return;
+        fini = true; clearTimeout(minuterie);
+        if (manuel) return;
+        identifie = true; source = "table";
+        appliquer(personneDepuisTable(tab));
+      }, function () {
+        if (fini) return;
+        fini = true; clearTimeout(minuterie);
+        suite();
+      });
+    } else {
+      suite();
+    }
+  }
+
   // ---------- API pour le widget hôte ----------
   window[NOM] = {
     version: VERSION,
+    // Transmission explicite par le widget : prioritaire sur la lecture automatique.
     utilisateur: function (m) {
-      // Rappelable à chaque relecture des données : un appel identique au précédent est ignoré.
-      var cle = JSON.stringify(m || null);
-      if (cle === derniereCle) return;
-      derniereCle = cle;
-      moi = m || null;
-      rolesMoi = rolesDeLaPersonne(moi && moi.role);
-      rendreUtilisateur();
-      rendreMenu();
+      manuel = true; source = "widget";
+      appliquer(m);
     },
     // Aide au diagnostic : dans la console du widget, taper  BandeauMenu.etat()
     etat: function () {
@@ -269,7 +341,9 @@
         version: VERSION,
         titre: titre,
         css: urlCss || "(introuvable)",
-        personne: moi === undefined ? "(le widget n'a pas appelé utilisateur())" : moi,
+        personne: moi === undefined ? "(pas encore identifiée)" : moi,
+        sourcePersonne: source,
+        tableUtilisateur: tableUtilisateur,
         rolesReconnus: rolesMoi.slice(),
         liste: urlJson || "(introuvable)",
         liens: liens === null ? "(pas encore chargés : " + (etatListe || "menu jamais ouvert") + ")"

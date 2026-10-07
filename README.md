@@ -43,42 +43,25 @@ Copiez cette ligne dans le `<head>` du widget :
 - `data-titre` est facultatif : c'est le nom propre à ce widget, ajouté au titre du menu (« Suivi des projets - Nom du widget »). Remplacez « Nom du widget » par le vrai nom, ou supprimez l'attribut.
 - Une seule balise par widget. Si le fichier est indisponible, le widget fonctionne simplement sans bandeau.
 
-## 3. Afficher la personne connectée et filtrer le menu par rôle (facultatif)
+## 3. Personne connectée et menu filtré par rôle
 
-Le bandeau ne lit aucune table : c'est le widget qui lui indique qui est connecté. Copiez cette fonction dans le widget et appelez `afficherPersonneDansLeBandeau()` **une fois, après `grist.ready(...)`** (vous pouvez la rappeler à chaque relecture des données : un appel identique est ignoré).
+Le bandeau **lit lui-même** la table « Utilisateur » du document : il n'y a rien à ajouter dans le widget pour afficher le nom, l'avatar et filtrer le menu. Cela suppose :
+
+- Le widget charge l'API Grist (`<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>`) et appelle `grist.ready({ requiredAccess: "full" })`, avec le niveau d'accès **« Accès complet au document »**. Le bandeau réessaie pendant une quinzaine de secondes si le widget appelle `grist.ready()` tardivement.
+- Une table nommée **`Utilisateur`**, avec les colonnes `Email`, `Role`, et au choix `Nom_Complet` ou `Prenom` + `Nom` (ce sont les **identifiants** de colonne qui comptent, pas les libellés). Pour une table portant un autre nom, ajoutez `data-table="NomDeLaTable"` à la balise.
+- Une règle d'accès Grist qui **masque l'`Email` de toutes les lignes sauf la sienne** : la personne connectée est la seule ligne dont l'`Email` est lisible. S'il y en a plusieurs ou aucune, le bandeau affiche « Non identifié·e » plutôt que de deviner.
+
+Les liens qui ont des `roles` ne s'affichent que si l'un des rôles de la personne correspond (majuscules et accents ignorés). Sans rôle connu, seuls les liens sans `roles` s'affichent.
+
+**Ce filtre n'est pas une sécurité** : le fichier `.json` est public. La vraie protection d'un widget reste dans les règles d'accès de Grist.
+
+**Exception** : pour un widget sans accès complet, qui ne peut donc pas lire la table, le widget peut transmettre la personne lui-même. Cet appel est prioritaire sur la lecture automatique :
 
 ```js
-async function afficherPersonneDansLeBandeau() {
-  if (!window.BandeauMenu) return;            // bandeau indisponible : le widget fonctionne sans
-  var personne = null;
-  try {
-    var t = await grist.docApi.fetchTable("User");
-    var visibles = [];                              // lignes dont l'Email n'est pas masqué
-    t.id.forEach(function (_, i) {
-      if (typeof t.Email[i] === "string" && t.Email[i].indexOf("@") > 0) visibles.push(i);
-    });
-    if (visibles.length === 1) {                    // une seule : c'est la personne connectée
-      var i = visibles[0];
-      personne = {
-        nomComplet: t.Nom_Complet ? t.Nom_Complet[i] : "",
-        prenom: t.Prenom ? t.Prenom[i] : "",
-        nom: t.Nom ? t.Nom[i] : "",
-        role: t.Role ? t.Role[i] : ""
-      };
-    }
-  } catch (e) { console.warn("[bandeau] table User illisible :", e); }
-  window.BandeauMenu.utilisateur(personne);
+if (window.BandeauMenu) {
+  window.BandeauMenu.utilisateur({ nomComplet: "Paul Durand", role: "Manager" });
 }
 ```
-
-Ce qu'elle suppose :
-
-- Le widget a le niveau d'accès **« Accès complet au document »** (elle utilise `grist.docApi`). Avec un accès « lecture de table », `docApi` n'existe pas : transmettez alors la personne à partir des données que le widget reçoit déjà, avec le même appel `utilisateur(...)`.
-- Une table nommée exactement **`User`**, avec les colonnes `Email` et `Role`, et au choix `Nom_Complet` ou `Prenom` + `Nom` (ce sont les **identifiants** de colonne qui comptent, pas les libellés).
-- Une règle d'accès Grist qui **masque l'`Email` de toutes les lignes sauf la sienne** : la personne connectée est la seule ligne dont l'`Email` est lisible. S'il y en a plusieurs ou aucune, le bandeau affiche « Non identifié·e » plutôt que de deviner.
-- Tant que `utilisateur()` n'est pas appelée, le nom et l'avatar restent masqués. `utilisateur(null)` affiche « Non identifié·e ».
-- Les liens qui ont des `roles` ne s'affichent que si l'un des rôles de la personne correspond (majuscules et accents ignorés). Sans rôle connu, seuls les liens sans `roles` s'affichent.
-- **Ce filtre n'est pas une sécurité** : le fichier `.json` est public. La vraie protection d'un widget reste dans les règles d'accès de Grist.
 
 ## 4. Modifier le menu plus tard
 
@@ -116,4 +99,5 @@ Après un changement, **la nouvelle version n'est pas visible tout de suite** : 
 | Bandeau sans mise en forme | Le `.css` est introuvable : il doit porter le même nom que le `.js` et se trouver dans le même dossier. |
 | « Liste indisponible. » | Le `.json` est absent, ou mal formé (virgule oubliée, guillemets). |
 | Images absentes | Vérifiez que `logo/` est publié et que `UrlRepo` correspond bien à l'adresse du site. Les images doivent être en `https`. |
+| Nom et avatar absents | Le widget n'a pas l'accès complet, n'a pas appelé `grist.ready()`, ou la table « Utilisateur » est absente. Dans la console du widget, `BandeauMenu.etat()` indique la table cherchée et d'où vient la personne. |
 | Lien absent du menu | Il est filtré par rôle, ou son adresse n'est pas en `http(s)`. `BandeauMenu.etat()` dans la console du widget indique, pour chaque lien, s'il est visible. |
